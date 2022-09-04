@@ -2,17 +2,15 @@
 	import TokenEditor from "./Token_Editor.svelte"
 	import { onMount } from "svelte";
 	import {clicked_id} from "./stores"
-import { get } from "svelte/store";
+	import { get } from "svelte/store";
 
-	// let data = [{'form':'am', 'id':'0'}, {'form':'un', 'id':'1'}, {'form':'leu', 'id':'2'}]
-	//let data_map = new Map(Object.entries(data))
 	let token_list : Array<Map<string, string>> = [] //data.map(tok => new Map(Object.entries(tok)))
-	// console.log(data_map_list)
 	let selected = null
-
 	let trigger_update = true
-
 	let token_is_editing : boolean = false
+	let token_filter_expr = 'true'
+	token_filter_expr = "token.get('form') == 'și'"
+
 
 	$: {
 		trigger_update;
@@ -32,15 +30,14 @@ import { get } from "svelte/store";
 		token_list = token_list
 	}
 
-	function to_html(token : Map<string, string>): string {
-		let rep : string = token.get('form')
-		if(token == selected) {
-			rep = '<b><u>' + rep + '</u></b>'
+	function get_word_class(word : Map<string, string>) : string {
+		if(word == selected) {
+			return 'selected' 
 		}
-		if(selected && selected.has('TargetID') && selected.get('TargetID') == token.get('id')) {
-			rep = '<b>' + rep + '</b>'
+		if(selected && selected.has('TargetID') && selected.get('TargetID') == word.get('id')) {
+			return 'target'
 		}
-		return rep
+		return 'normal'
 	}
 
 	onMount(async () => {
@@ -55,8 +52,8 @@ import { get } from "svelte/store";
 		});
 	});
 
-	let not_editable_keys = ['form', ]
-	let dont_display_keys = ['str_after', 'sel', 'id']
+	let not_editable_keys = ['form', 'id']
+	let dont_display_keys = ['str_after']
 
 	function save_json() {
 		console.log(JSON.stringify(token_list.map(m => Object.fromEntries(m))))
@@ -64,12 +61,18 @@ import { get } from "svelte/store";
 
 	function move_selected(delta : number) {
 		let index = token_list.indexOf(selected)
-		console.log(index)
+		//let init_index = index
 		if(index < 0) return
-		index = (index + delta) % token_list.length
-		if(index < 0) index += token_list.length
-		console.log(index)
-		selected = token_list[index]
+		let token = token_list[index]
+		while(true) {
+			index = (index + delta) % token_list.length
+			if(index < 0) index += token_list.length
+			token = token_list[index]
+			if(eval(token_filter_expr)) {
+				break
+			}
+		}
+		selected = token
 		trigger_update = !trigger_update
 		if(!isInViewport(selected.get('id'))) {
 			document.getElementById(selected.get('id')).scrollIntoView()
@@ -95,8 +98,9 @@ import { get } from "svelte/store";
 	<h1>Text:</h1>
 	<p>
 		{#each token_list as word}
-			<span id={word.get('id')} on:click={() => span_click(word.get('id'))}>
-				{@html to_html(word)} </span>
+			<span id={word.get('id')} class={get_word_class(word)} on:click={() => span_click(word.get('id'))}>
+				<!-- {@html to_html(word)} </span> -->
+				{word.get('form')} </span>
 			{#if word.get('str_after') == '\n'}
 			<br/>
 			{/if}
@@ -156,6 +160,18 @@ import { get } from "svelte/store";
 	.text {
 		margin-left: 240px; /* Same as the width of the sidebar */
 		padding: 0px 10px;
+	}
+	span.selected {
+		font-weight: bold;
+		text-decoration: underline;
+		color: black;
+	}
+	span.target {
+		font-weight: bold;
+		color: black;
+	}
+	span.normal {
+		color: black;
 	}
 
 </style>

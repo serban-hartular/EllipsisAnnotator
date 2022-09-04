@@ -126,7 +126,7 @@ import { each } from "svelte/internal";
             <td class="token_editor"><div contenteditable={not_editable_keys.includes(key) ? "false" : "true"} 
                 on:input={(e)=>process_change(e, key)}
                 on:focus={(e)=> set_is_editing(e, true, key) }
-                on:blur={(e)=> null } 
+                on:blur={(e)=> null  } 
             >{tok_data.get(key)}</div>
             </td>
             <td class="token_editor">
