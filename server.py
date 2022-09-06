@@ -54,6 +54,21 @@ def get_doc_relative():
     # print(delta)
     # return json.dumps({'received':delta})
 
+@app.route('/get-doc-by-name', methods=['POST'])
+def get_doc_by_name():
+    try:
+        json_data = request.get_json()
+        doc_id = json_data[doc_id_str]
+    except Exception as e:
+        return json.dumps({'error':str(e)})
+    doc = [d for d in doc_list if d[doc_id_str] == doc_id]
+    if len(doc) != 1:
+        return json.dumps({'error':'number of docs named %s is %d' % (doc_id, len(doc))})
+    global doc_index
+    doc_index = doc_list.index(doc[0])
+    return get_current_doc()
+
+
 @app.route('/update-doc', methods=['POST'])
 def update_doc():
     try:
@@ -78,6 +93,7 @@ def save_to_server():
     filename = filename_root + '-' + timestamp + filename_suffix
     with open(filename, 'wb') as handle:
         pickle.dump(doc_list, handle)
+    print('Saved ' + filename)
     return json.dumps({'response':'ok', 'filename':filename})
 
 import os
@@ -111,6 +127,7 @@ def load_file():
     global doc_list, doc_index
     doc_list = _doc_list
     doc_index = 0
+    print('Loaded ' + filename)
     return json.dumps({'response':'ok'})
     
 if __name__ == '__main__':

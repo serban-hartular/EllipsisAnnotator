@@ -48,7 +48,7 @@ import { each } from "svelte/internal";
     function process_id_change(id : string) {
         console.log('Processing id change ' + id)
         console.log(is_editing_flag)
-        if(!is_editing_flag) return
+        if(!is_editing_flag || !current_key) return
         tok_data.set(current_key, id)
         tok_data = tok_data
         is_editing_flag = false
@@ -117,7 +117,11 @@ import { each } from "svelte/internal";
 
 {#if tok_data}
     <table class="token_editor">
-        <tr><th class="token_editor">Key</th><th class="token_editor">Value</th><th class="token_editor">Fn</th></tr>
+        <tr>
+            <th class="token_editor">Key</th>
+            <th class="token_editor">Value</th>
+            <th class="token_editor">Del</th>
+        </tr>
     {#each Array.from(tok_data.keys()) as key}
         {#if !dont_display_keys.includes(key)}
         <tr>
@@ -127,9 +131,10 @@ import { each } from "svelte/internal";
                 {key}</div></td>
             <td class="token_editor"><div contenteditable={not_editable_keys.includes(key) ? "false" : "true"} 
                 on:input={(e)=>process_change(e, key)}
-                on:focus={(e)=> set_is_editing(e, true, key) }
-                on:blur={(e)=> null  } 
-            >{tok_data.get(key)}</div>
+            >{tok_data.get(key)}</div> 
+            <!-- on:focus={(e)=> set_is_editing(e, true, key) }
+            on:blur={(e)=> null  }  -->
+
             </td>
             <td class="token_editor">
                 {#if !not_editable_keys.includes(key)}
@@ -139,7 +144,9 @@ import { each } from "svelte/internal";
         </tr>
         {/if}
     {/each}
-    <tr><td class="token_editor" colspan="3"><button on:click={add_key_click}>Add Key</button>
+    <tr><td class="token_editor" colspan="3">
+        <button on:click={add_key_click}>Add Key</button>
+        <input type="checkbox" bind:checked={is_editing_flag} />Enter ID
     </td></tr>
     </table>
     {#if value_buttons && current_key}

@@ -2,6 +2,7 @@
 	import TokenEditor from "./Token_Editor.svelte"
 	import { onMount } from "svelte";
 	import {clicked_id} from "./stores"
+import { get } from "svelte/store";
 
 	let token_list : Array<Map<string, string>> = [] //data.map(tok => new Map(Object.entries(tok)))
 	let selected = null
@@ -9,7 +10,7 @@
 	let token_is_editing : boolean = false
 	let token_filter_expr = "token.has('Ellipsis')"
 	let doc_name = ''
-	let current_file_name = ''
+	let current_file_name = 'default'
 	let save_changes_flag = true
 
 	let doc_id_str = 'newdoc id'
@@ -84,7 +85,29 @@
 		.then(data => server_data_to_token_list(data))
 	}
 
-	function update_doc() {
+	let go_to_text = ''
+	
+	function fetch_doc_by_name(name : string = undefined) {
+		if(name == undefined) name = go_to_text
+		fetch("http://localhost:5000/get-doc-by-name", {
+			method: 'POST', 
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({[doc_id_str]:name})
+		})
+		.then(response => response.json())
+		.then(data => {
+			if('error' in data) {
+				alert('Error looking for text ' + name + ': ' + data['error'])
+			} else {
+				server_data_to_token_list(data)
+			}
+		})
+
+	}
+
+	async function update_doc() {
 		fetch("http://localhost:5000/update-doc", {
 			method: 'POST', 
 			headers: {
@@ -101,10 +124,6 @@
 
 	let not_editable_keys = ['form', 'id']
 	let dont_display_keys = ['str_after']
-
-	function save_json() {
-		console.log(JSON.stringify(token_list.map(m => Object.fromEntries(m))))
-	}
 
 	function move_selected(delta : number) {
 		let index = selected ? token_list.indexOf(selected) : 0
@@ -158,10 +177,18 @@
 	let file_list : Array<string> = []
 
 	function commit_to_server() {
-		fetch("http://localhost:5000/save-to-server")
-		.then(response => response.json())
-		.then(data => {
-			console.log(data);
+		update_doc()
+		.then(()=>{
+			fetch("http://localhost:5000/save-to-server")
+			.then(response => response.json())
+			.then(data => {
+				//console.log(data);
+				if(data['response'] == 'ok') {
+					alert('Saved as ' + data['filename'])
+				} else {
+					alert('Error: ' + data['error'])
+				}
+			})
 		})
 	}
 
@@ -197,18 +224,21 @@
 				current_file_name = data['error']
 			}
 		})
-		if(!load_ok) return
-		//load first doc in file	
-		fetch("http://localhost:5000/get-init-doc")
-		.then(response => response.json())
-		.then(data => {
-				//console.log(data);
+		.then(()=> {
+			if(!load_ok) {
+				console.log('Load not ok')
+				return
+			}
+			fetch("http://localhost:5000/get-init-doc")
+			.then(response => response.json())
+			.then(data => {
 				server_data_to_token_list(data)
-		}).catch(error => {
-			console.log(error);
-			return [];
-		});
-
+				console.log('Loaded new doc')
+			}).catch(error => {
+				console.log(error);
+				return [];
+			})
+		})
 	}
 
 </script>
@@ -219,7 +249,11 @@
 	<h2>Text: {doc_name}</h2>
 	<p>
 		{#each token_list as word}
-			<span id={word.get('id')} class={get_word_class(word)} on:click={() => span_click(word.get('id'))}>
+			<span id={word.get('id')}
+					class={get_word_class(word)}
+					on:click={() => span_click(word.get('id'))}
+					on:dblclick={()=> console.log('double click ' + word.get('id'))}
+			>
 				<!-- {@html to_html(word)} </span> -->
 				{word.get('form')} </span>
 			{#if word.get('str_after') == '\n'}
@@ -229,7 +263,7 @@
 	</p>
 	</div>
 
-	<div class="sidenav" on:click|self={()=>console.log('sidenav click')}>
+	<div class="sidenav">
 		<div class="token_editor">
 			<TokenEditor bind:tok_data={selected} bind:trigger_update={trigger_update}
 					bind:not_editable_keys={not_editable_keys} 
@@ -245,9 +279,13 @@
 				<input type="text" bind:value={token_filter_expr} />
 	
 		</p>
+		<hr/>
 		<p>
 			<button on:click={()=>fetch_doc_delta(-1)}>Previous Doc</button>
 			<button on:click={()=>fetch_doc_delta(+1)}>Next Doc</button><br/>
+			<button on:click={()=>fetch_doc_by_name()}>
+				Go to text
+			</button><input type="text" bind:value={go_to_text} size="10"/><br/>
 			Keep Changes <input type="checkbox" bind:checked={save_changes_flag} />
 		</p><p>
 			<button on:click={()=>fetch_doc_delta(0)}>Reload Doc</button>
