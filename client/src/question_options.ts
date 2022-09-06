@@ -1,7 +1,7 @@
 export class Answer {
     answer : string
-    next : Question
-    constructor(answer : string, next : Question = null) {
+    next : Question|null
+    constructor(answer : string, next : Question|null = null) {
         this.answer = answer
         this.next = next
     }

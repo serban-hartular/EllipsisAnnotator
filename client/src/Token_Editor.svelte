@@ -10,8 +10,10 @@ import { each } from "svelte/internal";
     export let not_editable_keys : Array<string> = []
     export let dont_display_keys : Array<string> = []
     export let key_values_map : Map<string, Array<string>> = new Map<string, Array<string>>(
-        [['Ellipsis', ['VPE', 'RNR', 'BadParse', 'Semantic']],
-          ['Antecedent', ['Present', 'External', 'Exophoric']]]
+        [ ['Ellipsis', ['VPE', 'RNR', 'BadParse', 'Semantic']],
+          ['Antecedent', ['Present', 'External', 'Exophoric']],
+          ['TargetID', []]
+        ]
     )
 
     let current_key = ''
